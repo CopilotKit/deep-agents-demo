@@ -2,8 +2,7 @@
 Deep Research Assistant - FastAPI Server
 
 Serves the Deep Research Agent via AG-UI protocol for CopilotKit integration.
-The agent uses Firecrawl for web research and Deep Agents for planning,
-filesystem operations, and subagent delegation.
+The agent uses Tavily for web research and Deep Agents for planning and filesystem operations.
 """
 
 import os
@@ -49,7 +48,13 @@ try:
     # Only emit main agent tools - suppress internal tools (internet_search from research subagent)
     # This prevents subagent tool calls from appearing as JSON noise in the chat
     agui_config = copilotkit_customize_config(
-        emit_tool_calls=["research", "write_todos", "write_file", "read_file", "edit_file"]
+        emit_tool_calls=[
+            "research",
+            "write_todos",
+            "write_file",
+            "read_file",
+            "edit_file",
+        ]
     )
 
     # Add recursion limit for complex research tasks (6+ research calls + file operations)
