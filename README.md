@@ -1,16 +1,17 @@
 # Deep Research Assistant
 
-A [CopilotKit](https://copilotkit.ai) Deep Agents demo showcasing planning, memory/files, subagent spawning, and generative UI using [Firecrawl](https://www.firecrawl.dev/) for web research.
+A [CopilotKit](https://copilotkit.ai) Deep Agents demo showcasing planning, memory/files, and generative UI using [Tavily](https://www.tavily.com/) for web research.
+
+https://github.com/user-attachments/assets/68d5729f-91f9-4fd9-a579-cd1a8f4aad8d
 
 ## What This Demo Shows
 
-This demo showcases all four key Deep Agents capabilities:
+This demo showcases all key Deep Agents capabilities:
 
 - **Planning (Todos)** - Visible research plan with status indicators (pending, in progress, completed)
 - **Memory/Files** - Markdown files created by the agent, viewable in the workspace with download option
-- **Subagent Delegation** - Researcher subagent handles deep-dive searches with activity tracking
 - **Generative UI** - Rich tool call rendering with result summaries and expandable details
-- **Web Research** - Firecrawl-powered search and page scraping for real-time information
+- **Web Research** - Tavily-powered search for real-time information
 
 ## Architecture
 
@@ -24,13 +25,12 @@ CopilotKit Runtime → LangGraphHttpAgent
 Python Backend (FastAPI + AG-UI)
         ↓
 Deep Agent (research_assistant)
-    ├── write_todos (planning via middleware)
-    ├── web_search (Firecrawl)
-    ├── scrape_url (Firecrawl)
-    ├── write_file (filesystem via middleware)
-    └── task → researcher subagent
-                 ├── web_search
-                 └── scrape_url
+    ├── write_todos        (planning, built-in)
+    ├── write_file         (filesystem, built-in)
+    ├── read_file          (filesystem, built-in)
+    └── research(query)
+            └── internal Deep Agent [thread-isolated]
+                    └── internet_search (Tavily)
 ```
 
 ## Project Structure
@@ -53,7 +53,7 @@ deep-research-v2/
 ├── agent/                           # Python backend
 │   ├── main.py                      # FastAPI server + AG-UI
 │   ├── agent.py                     # Deep Agent definition
-│   ├── tools.py                     # Firecrawl tools
+│   ├── tools.py                     # Tavily search tools
 │   └── pyproject.toml               # Python dependencies
 │
 ├── .env.example                     # Environment variables
@@ -62,14 +62,14 @@ deep-research-v2/
 
 ## Environment Variables
 
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `OPENAI_API_KEY` | Yes | - | [Get API key](https://platform.openai.com/api-keys) |
-| `FIRECRAWL_API_KEY` | Yes | - | [Get API key](https://www.firecrawl.dev/app/api-keys) |
-| `OPENAI_MODEL` | No | `gpt-4o` | Model to use (gpt-4o, gpt-4-turbo, etc.) |
-| `LANGGRAPH_DEPLOYMENT_URL` | No | `http://localhost:8123` | Backend URL |
-| `SERVER_HOST` | No | `0.0.0.0` | Backend host |
-| `SERVER_PORT` | No | `8123` | Backend port |
+| Variable                   | Required | Default                 | Description                                         |
+| -------------------------- | -------- | ----------------------- | --------------------------------------------------- |
+| `OPENAI_API_KEY`           | Yes      | -                       | [Get API key](https://platform.openai.com/api-keys) |
+| `TAVILY_API_KEY`           | Yes      | -                       | [Get API key](https://app.tavily.com/home)          |
+| `OPENAI_MODEL`             | No       | `gpt-5.2`               | Model to use (gpt-5.2, gpt-5, etc.)                 |
+| `LANGGRAPH_DEPLOYMENT_URL` | No       | `http://localhost:8123` | Backend URL                                         |
+| `SERVER_HOST`              | No       | `0.0.0.0`               | Backend host                                        |
+| `SERVER_PORT`              | No       | `8123`                  | Backend port                                        |
 
 ## Setup & Installation
 
@@ -102,13 +102,14 @@ Copy `.env.example` to `.env` in both the root directory and `agent/` directory,
 ## Running Locally
 
 **Terminal 1 - Backend:**
+
 ```bash
 cd agent
-source .venv/bin/activate
-uvicorn main:app --port 8123
+uv run python main.py
 ```
 
 **Terminal 2 - Frontend:**
+
 ```bash
 npm run dev
 ```
@@ -135,28 +136,24 @@ useDefaultTool({
 });
 ```
 
-### Backend: Deep Agent with Subagent
+### Backend: Deep Agents with research tool
 
 ```python
-agent = create_deep_agent(
-    name="research_assistant",
-    model=ChatOpenAI(model="gpt-4o"),
-    tools=[web_search, scrape_url],
-    subagents=[{
-        "name": "researcher",
-        "description": "Deep-dive researcher for specific topics",
-        "system_prompt": "You are a research specialist...",
-        "tools": [web_search, scrape_url],
-    }],
+agent_graph = create_deep_agent(
+    model=ChatOpenAI(model="gpt-5.2"),
+    system_prompt=MAIN_SYSTEM_PROMPT,
+    tools=[research],
+    middleware=[CopilotKitMiddleware()],
+    checkpointer=MemorySaver(),
 )
 ```
 
 ## Learn More
 
-- [Deep Agents Documentation](https://docs.copilotkit.ai/langgraph/deep-agents)
+- [Deep Agents Documentation](https://docs.copilotkit.ai/integrations/langgraph/deep-agents)
 - [Building Frontends for Deep Agents](https://www.copilotkit.ai/blog/how-to-build-a-frontend-for-langchain-deep-agents-with-copilotkit)
 - [CopilotKit Documentation](https://docs.copilotkit.ai)
-- [Firecrawl Documentation](https://docs.firecrawl.dev)
+- [Tavily Documentation](https://docs.tavily.com/welcome)
 
 ## License
 
